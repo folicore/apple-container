@@ -8,6 +8,9 @@
 #include "helper.h"
 #include "controller.h"
 
+#include "gameLogic.h"
+#include "drawLogic.h"
+
 using help::hCheck;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -81,7 +84,6 @@ namespace {
 } // namepsace
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	static std::optional<UINT64> last_time;
 	static MyD2DObjectCollection myd2d;
 	static Controller controller;
 
@@ -91,6 +93,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	case WM_CREATE:
 		hCheck(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
 		myd2d.init(hwnd, rtd::ALL);
+		gameLogic::init(help::myTimer64ms());
+		drawLogic::init(myd2d, rtd::ALL);
 		initDone = true;
 	return 0;
 
@@ -101,27 +105,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	} return 0;
 
 	case WM_PAINT: {
-		UINT64 time = help::myTimer64ms();
+		UINT64 timeMs = help::myTimer64ms();
+		DrawOrders drawOrders;
 
 		controller.pollAllKeys();
+		gameLogic::processFrame(controller, drawOrders, timeMs);
 
 		myd2d.d2d_render_target->BeginDraw();
-		myd2d.d2d_render_target->Clear(D2D1::ColorF(D2D1::ColorF::Beige));
+		drawLogic::processOrders(myd2d, drawOrders);
 		try {
 			hCheck(myd2d.d2d_render_target->EndDraw());
 			//if (time % 250 == 0) { throw hresultNotOk(D2DERR_RECREATE_TARGET); } // bad way of testing fails
 		} catch (help::hresultNotOk& e) {
 			if (e.hresult == D2DERR_RECREATE_TARGET) {
 				myd2d.free(rtd::ONLY_RENDER_TARGET_DEPENDENT);
+				drawLogic::free(rtd::ONLY_RENDER_TARGET_DEPENDENT);
 
 				myd2d.init(hwnd, rtd::ONLY_RENDER_TARGET_DEPENDENT);
+				drawLogic::init(myd2d, rtd::ONLY_RENDER_TARGET_DEPENDENT);
 			} else {
 				throw;
 			}
 		}
 
 		ValidateRect(hwnd, nullptr);
-		last_time = time;
 	} return 0;
 
 	case WM_CLOSE:
@@ -133,6 +140,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 	case WM_DESTROY:
 		myd2d.free(rtd::ALL);
+		gameLogic::free();
+		drawLogic::free(rtd::ALL);
 		PostQuitMessage(0);
 	return 0;
 

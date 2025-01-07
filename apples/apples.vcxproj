@@ -145,6 +145,8 @@
   <ItemGroup>
     <ClCompile Include="bitmapFileLoader.cpp" />
     <ClCompile Include="controller.cpp" />
+    <ClCompile Include="drawLogic.cpp" />
+    <ClCompile Include="gameLogic.cpp" />
     <ClCompile Include="helper.cpp" />
     <ClCompile Include="myD2D.cpp" />
     <ClCompile Include="WinMain.cpp" />
