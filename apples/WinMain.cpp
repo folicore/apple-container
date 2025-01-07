@@ -60,19 +60,12 @@ INT WINAPI wWinMain(
 
 	ShowWindow(hwnd, cmd_show);
 
-	/*MSG msg = { };
-	while (GetMessage(&msg, NULL, 0, 0) > 0) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}*/
-
 	MSG msg = { };
 	do {
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 			if (msg.message != WM_QUIT) {
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
-				//WindowProc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 			}
 		} else {
 			inbetweenFrames(hwnd);
@@ -98,7 +91,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	case WM_CREATE:
 		hCheck(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
 		myd2d.init(hwnd, rtd::ALL);
-		//pou::init(myd2d, rtd::ALL);
 		initDone = true;
 	return 0;
 
@@ -114,18 +106,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		controller.pollAllKeys();
 
 		myd2d.d2d_render_target->BeginDraw();
-		//pou::draw(myd2d, time, last_time.value_or(0), controller);
+		myd2d.d2d_render_target->Clear(D2D1::ColorF(D2D1::ColorF::Beige));
 		try {
 			hCheck(myd2d.d2d_render_target->EndDraw());
-			//if (time % 250 == 0) { throw hresultNotOk(D2DERR_RECREATE_TARGET); }
-			// if render target is recrated, background W should reset
+			//if (time % 250 == 0) { throw hresultNotOk(D2DERR_RECREATE_TARGET); } // bad way of testing fails
 		} catch (help::hresultNotOk& e) {
 			if (e.hresult == D2DERR_RECREATE_TARGET) {
 				myd2d.free(rtd::ONLY_RENDER_TARGET_DEPENDENT);
-				//pou::free(rtd::ONLY_RENDER_TARGET_DEPENDENT);
 
 				myd2d.init(hwnd, rtd::ONLY_RENDER_TARGET_DEPENDENT);
-				//pou::init(myd2d, rtd::ONLY_RENDER_TARGET_DEPENDENT);
 			} else {
 				throw;
 			}
@@ -143,13 +132,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	return 0;
 
 	case WM_DESTROY:
-		//pou::free(rtd::ALL);
 		myd2d.free(rtd::ALL);
 		PostQuitMessage(0);
 	return 0;
 
 	// default:
-		// keep DefWindowProc outside of switch, so if any of the cases forgets to return from function KWP is still called
+		// keep DefWindowProc outside of switch, so if any of the cases forgets to return from function DWP is still called
 	}
 
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -157,14 +145,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 void inbetweenFrames(HWND hwnd) {
 	const UINT64 MAX_FPS = 144;
-	static UINT64 last_frame = 0;
+	static UINT64 lastFrame = 0;
 
-	UINT64 time_ms = help::myTimer64ms();
-	UINT64 current_frame = (time_ms * MAX_FPS) / 1000;
+	UINT64 timeMs = help::myTimer64ms();
+	UINT64 currentFrame = (timeMs * MAX_FPS) / 1000;
 
-	if (current_frame != last_frame && initDone) {
+	if (currentFrame != lastFrame && initDone) {
 		InvalidateRect(hwnd, nullptr, true);
 	}
 
-	last_frame = current_frame;
+	lastFrame = currentFrame;
 }
