@@ -42,7 +42,7 @@ INT WINAPI wWinMain(
 	HWND hwnd = CreateWindowEx(
 		0,									// Optional window styles.
 		CLASS_NAME,							// Window class
-		TEXT("Pou"),						// Window text
+		TEXT("Apple Container"),			// Window text
 		WS_OVERLAPPEDWINDOW,				// Window style
 
 		// Size and position:
