@@ -86,6 +86,7 @@ namespace {
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	static MyD2DObjectCollection myd2d;
 	static Controller controller;
+	static gamestate::GameState gameState;
 
 	controller.processWindowMsg(hwnd, uMsg, wParam, lParam);
 
@@ -93,7 +94,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	case WM_CREATE:
 		hCheck(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
 		myd2d.init(hwnd, rtd::ALL);
-		gameLogic::init(help::myTimer64ms());
+		gameLogic::init(help::myTimer64ms(), gameState);
 		drawLogic::init(myd2d, rtd::ALL);
 		initDone = true;
 	return 0;
@@ -106,13 +107,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 	case WM_PAINT: {
 		UINT64 timeMs = help::myTimer64ms();
-		DrawOrders drawOrders;
+		
 
 		controller.pollAllKeys();
-		gameLogic::processFrame(controller, drawOrders, timeMs);
+		gameLogic::processFrame(controller, gameState, timeMs);
 
 		myd2d.d2d_render_target->BeginDraw();
-		drawLogic::processOrders(myd2d, drawOrders);
+		drawLogic::drawFrame(myd2d, gameState);
 		try {
 			hCheck(myd2d.d2d_render_target->EndDraw());
 			//if (time % 250 == 0) { throw hresultNotOk(D2DERR_RECREATE_TARGET); } // bad way of testing fails

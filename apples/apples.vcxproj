@@ -136,8 +136,8 @@
     <ClInclude Include="bitmapFileLoader.h" />
     <ClInclude Include="controller.h" />
     <ClInclude Include="drawLogic.h" />
-    <ClInclude Include="drawOrders.h" />
     <ClInclude Include="gameLogic.h" />
+    <ClInclude Include="gameState.h" />
     <ClInclude Include="helper.h" />
     <ClInclude Include="myD2D.h" />
     <ClInclude Include="WinMain.h" />

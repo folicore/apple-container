@@ -33,10 +33,10 @@
     <ClInclude Include="gameLogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="drawOrders.h">
+    <ClInclude Include="drawLogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="drawLogic.h">
+    <ClInclude Include="gameState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
