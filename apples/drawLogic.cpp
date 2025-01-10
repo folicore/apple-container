@@ -19,6 +19,8 @@ namespace {
     IDWriteTextFormat* textFormatVCR = nullptr;
 
     ID2D1SolidColorBrush* solidBrush = nullptr;
+    ID2D1PathGeometry* appleGeometry = nullptr;
+    ID2D1PathGeometry* leafGeometry = nullptr;
 
     // universal arguments to helper functions (no point in typing them for each helper function):
     const MyD2DObjectCollection* p_myd2d;
@@ -32,6 +34,7 @@ namespace {
 
 void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
     if (rtdv == rtd::NO_RENDER_TARGET_DEPENDENT || rtdv == rtd::ALL) {
+        // load Comic Sans:
         myd2d.write_factory->CreateTextFormat(
             L"Comic Sans MS", nullptr,
             DWRITE_FONT_WEIGHT_LIGHT,
@@ -39,37 +42,66 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
             DWRITE_FONT_STRETCH_NORMAL,
             192.0f, L"en-us", &textFormatComicSans);
 
+        // load VCR OSD Mono:
+        {
+            IDWriteFontSetBuilder1* font_set_builder = nullptr;
+            IDWriteFontFile* font_file = nullptr;
+            IDWriteFontSet* font_set = nullptr;
+            IDWriteFontCollection1* font_collection = nullptr;
+            hCheck(myd2d.write_factory->CreateFontSetBuilder(&font_set_builder));
+            hCheck(myd2d.write_factory->CreateFontFileReference(L"assets/fonts/VCR_OSD_MONO_1.001.ttf", NULL, &font_file));
+            hCheck(font_set_builder->AddFontFile(font_file));
+            hCheck(font_set_builder->CreateFontSet(&font_set));
+            hCheck(myd2d.write_factory->CreateFontCollectionFromFontSet(font_set, &font_collection));
 
-        IDWriteFontSetBuilder1* font_set_builder = nullptr;
-        IDWriteFontFile* font_file = nullptr;
-        IDWriteFontSet* font_set = nullptr;
-        IDWriteFontCollection1* font_collection = nullptr;
-        hCheck(myd2d.write_factory->CreateFontSetBuilder(&font_set_builder));
-        hCheck(myd2d.write_factory->CreateFontFileReference(L"assets/fonts/VCR_OSD_MONO_1.001.ttf", NULL, &font_file));
-        hCheck(font_set_builder->AddFontFile(font_file));
-        hCheck(font_set_builder->CreateFontSet(&font_set));
-        hCheck(myd2d.write_factory->CreateFontCollectionFromFontSet(font_set, &font_collection));
+            help::SafeRelease(font_set_builder);
+            help::SafeRelease(font_file);
+            help::SafeRelease(font_set);
 
-        help::SafeRelease(font_set_builder);
-        help::SafeRelease(font_file);
-        help::SafeRelease(font_set);
+            myd2d.write_factory->CreateTextFormat(
+                L"VCR OSD Mono", font_collection,
+                DWRITE_FONT_WEIGHT_LIGHT,
+                DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STRETCH_NORMAL,
+                64.0f, L"en-us", &textFormatVCR);
+            textFormatVCR->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            textFormatVCR->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-        myd2d.write_factory->CreateTextFormat(
-            L"VCR OSD Mono", font_collection,
-            DWRITE_FONT_WEIGHT_LIGHT,
-            DWRITE_FONT_STYLE_NORMAL,
-            DWRITE_FONT_STRETCH_NORMAL,
-            64.0f, L"en-us", &textFormatVCR);
-        textFormatVCR->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-        textFormatVCR->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
-        help::SafeRelease(font_collection);
+            help::SafeRelease(font_collection);
+        }
     }
 
     if (rtdv == rtd::ONLY_RENDER_TARGET_DEPENDENT || rtdv == rtd::ALL) {
-        auto d2drt = myd2d.d2d_render_target;
-        hCheck(d2drt->CreateSolidColorBrush(ColorF(ColorF::Black), &solidBrush));
+        hCheck(myd2d.d2d_render_target->CreateSolidColorBrush(ColorF(ColorF::Black), &solidBrush));
         
+
+        // create apple geometry:
+        {
+            ID2D1GeometrySink* sink = nullptr;
+
+            hCheck(myd2d.d2d_factory->CreatePathGeometry(&appleGeometry));
+            appleGeometry->Open(&sink);
+            sink->BeginFigure(Point2F(0, -100), D2D1_FIGURE_BEGIN_FILLED);
+            sink->AddBezier(D2D1::BezierSegment(Point2F(40, -140), Point2F(180, -120), Point2F(160, 10)));
+            sink->AddBezier(D2D1::BezierSegment(Point2F(170, 70), Point2F(70, 130), Point2F(0, 110)));
+            sink->AddBezier(D2D1::BezierSegment(Point2F(-70, 130), Point2F(-170, 70), Point2F(-160, 10)));
+            sink->AddBezier(D2D1::BezierSegment(Point2F(-180, -120), Point2F(-40, -140), Point2F(0, -100)));
+            sink->EndFigure(D2D1_FIGURE_END_OPEN);
+            hCheck(sink->Close());
+        }
+
+        // create leaf geometry:
+        {
+            ID2D1GeometrySink* sink = nullptr;
+
+            hCheck(myd2d.d2d_factory->CreatePathGeometry(&leafGeometry));
+            leafGeometry->Open(&sink);
+            sink->BeginFigure(Point2F(30, -150), D2D1_FIGURE_BEGIN_FILLED);
+            sink->AddQuadraticBezier(D2D1::QuadraticBezierSegment(Point2F(10, -200), Point2F(-70, -180)));
+            sink->AddQuadraticBezier(D2D1::QuadraticBezierSegment(Point2F(20, -110), Point2F(30, -150)));
+            sink->EndFigure(D2D1_FIGURE_END_OPEN);
+            hCheck(sink->Close());
+        }
     }
 }
 
@@ -142,35 +174,48 @@ namespace {
         p_myd2d->d2d_render_target->SetTransform(finalTransform);
     }
 
-    void drawApple(const Apple& apple, bool popped) {
+    void drawAppleGeometry(D2D1::ColorF lineColor) {
+        solidBrush->SetColor(ColorF(ColorF::ForestGreen));
+        p_myd2d->d2d_render_target->FillGeometry(leafGeometry, solidBrush);
+
+        solidBrush->SetColor(ColorF(0.17f, 0.05f, 0.05f));
+        p_myd2d->d2d_render_target->DrawLine(Point2F(0, -95), Point2F(40, -170), solidBrush, 24.0f);
+
+        solidBrush->SetColor(ColorF(ColorF::Red));
+        p_myd2d->d2d_render_target->FillGeometry(appleGeometry, solidBrush);
+
+        solidBrush->SetColor(lineColor);
+        p_myd2d->d2d_render_target->DrawGeometry(appleGeometry, solidBrush, 24.0f);
+    }
+
+    void drawApple(const Apple& apple, bool popped, bool withText = true) {
         if (apple.popped != popped) { return; }
         if (apple.posY > 25000.0f) { return; }
 
         D2D1_RECT_F thisRect = D2D1::Rect(-150.0f, -150.0f, 150.0f, 150.0f);
-
+        
         Matrix3x2F appleTransform = Matrix3x2F::Scale(p_gameState->appleSize / 400.0f, p_gameState->appleSize / 400.0f) * 
             Matrix3x2F::Rotation(apple.angle) * 
             Matrix3x2F::Translation(apple.posX, apple.posY) * 
             finalTransform;
         p_myd2d->d2d_render_target->SetTransform(appleTransform);
 
+        drawAppleGeometry(apple.inDrag ? ColorF(ColorF::Goldenrod) : ColorF(ColorF::SaddleBrown));
 
-        solidBrush->SetColor(ColorF(ColorF::Red));
-        p_myd2d->d2d_render_target->FillRectangle(thisRect, solidBrush);
 
-        solidBrush->SetColor(apple.inDrag ? ColorF(ColorF::Goldenrod) : ColorF(ColorF::SaddleBrown));
-        p_myd2d->d2d_render_target->DrawRectangle(thisRect, solidBrush, 40.0f);
+        if (withText) {
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(4.0f, 4.0f) * appleTransform);
 
-        p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(4.0f, 4.0f) * appleTransform);
-        std::wstring text = std::to_wstring(apple.value);
-        solidBrush->SetColor(ColorF(ColorF::White));
-        p_myd2d->d2d_render_target->DrawTextW(
-            text.data(), text.size(),
-            textFormatVCR,
-            thisRect,
-            solidBrush);
+            std::wstring text = std::to_wstring(apple.value);
+            solidBrush->SetColor(ColorF(ColorF::White));
+            p_myd2d->d2d_render_target->DrawTextW(
+                text.data(), text.size(),
+                textFormatVCR,
+                thisRect,
+                solidBrush);
 
-        p_myd2d->d2d_render_target->SetTransform(finalTransform);
+            p_myd2d->d2d_render_target->SetTransform(finalTransform);
+        }
     }
 
 
@@ -200,6 +245,69 @@ namespace {
     }
 
     void playing() {
+        // draw score:
+        {
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(0.8f, 0.8f) *
+                Matrix3x2F::Translation(230.0f, 250.0f) *
+                finalTransform);
+
+            drawAppleGeometry(ColorF(ColorF::SaddleBrown));
+
+            solidBrush->SetColor(ColorF(ColorF::White));
+
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(1.05f, 1.05f) *
+                Matrix3x2F::Translation(233.0f, 130.0f) *
+                finalTransform);
+
+            D2D1_RECT_F textRect = D2D1::Rect(-400.0f, -50.0f, 400.0f, 150.0f);
+            std::wstring text = L"Score";
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(2.05f, 2.05f) *
+                Matrix3x2F::Translation(231.0f, 165.0f) *
+                finalTransform);
+
+            text = std::to_wstring(p_gameState->play.score);
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+
+            p_myd2d->d2d_render_target->SetTransform(finalTransform);
+        }
+
+
+
+
+        // draw timer: 
+        {
+            D2D1_POINT_2F clockCenter = Point2F(230.0f, 500.0f);
+            FLOAT clockRadius = 100.0f;
+
+            solidBrush->SetColor(ColorF(ColorF::ForestGreen));
+            p_myd2d->d2d_render_target->FillEllipse(
+                D2D1::Ellipse(clockCenter, clockRadius, clockRadius), solidBrush
+            );
+
+            FLOAT rotationAngle = 360.0f * static_cast<FLOAT>(p_gameState->currentTimeMs - p_gameState->play.startTimeMs) /
+                1000.0f / static_cast<FLOAT>(p_gameState->playTime);
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Rotation(rotationAngle, clockCenter) *
+                finalTransform);
+
+            solidBrush->SetColor(ColorF(ColorF::DarkGreen));
+            p_myd2d->d2d_render_target->DrawLine(clockCenter, D2D1::Point2F(clockCenter.x, clockCenter.y - clockRadius), solidBrush, 5.0f);
+
+            p_myd2d->d2d_render_target->SetTransform(finalTransform);
+
+            D2D1_RECT_F textRect = D2D1::Rect(clockCenter.x - clockRadius, clockCenter.y - clockRadius,
+                clockCenter.x + clockRadius, clockCenter.y + clockRadius);
+
+            solidBrush->SetColor(ColorF(ColorF::White));
+            std::wstring text = std::to_wstring((p_gameState->play.startTimeMs + 1000 * p_gameState->playTime - p_gameState->currentTimeMs) / 1000);
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+        }
+
+        // draw play field:
         solidBrush->SetColor(ColorF(0.75f, 0.6f, 0.3f));
         p_myd2d->d2d_render_target->DrawRectangle(gamestate::APPLES_PLAY_AREA,
             solidBrush, 2.0f);
@@ -230,5 +338,7 @@ void drawLogic::free(rtd rtdv) {
 
     if (rtdv == rtd::ONLY_RENDER_TARGET_DEPENDENT || rtdv == rtd::ALL) {
         help::SafeRelease(solidBrush);
+        help::SafeRelease(appleGeometry);
+        help::SafeRelease(leafGeometry);
     }
 }

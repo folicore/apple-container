@@ -45,6 +45,8 @@ void gameLogic::init(UINT64 timeMs, GameState& gameState) {
 }
 
 void gameLogic::processFrame(const Controller& controller, GameState& gameState, UINT64 timeMs) {
+    gameState.currentTimeMs = timeMs;
+
     // assume the game plays in an 1920x1080 window
     Controller::PairXY<INT> windowSize = controller.windowSize();
     FLOAT windowRatio = static_cast<FLOAT>(windowSize.x) / static_cast<FLOAT>(windowSize.y);
@@ -103,7 +105,10 @@ void gamestate::Apple::animate(UINT64 deltaTimeMs) {
 
 namespace {
     void initPlaying(GameState& gameState, UINT64 timeMs) {
-        gameState.play.startTime = timeMs;
+        gameState.play.startTimeMs = timeMs;
+        gameState.play.score = 0;
+        gameState.play.inDrag = false;
+
 
         FLOAT playAreaSizeX = gamestate::APPLES_PLAY_AREA.right - gamestate::APPLES_PLAY_AREA.left;
         FLOAT playAreaSizeY = gamestate::APPLES_PLAY_AREA.bottom - gamestate::APPLES_PLAY_AREA.top;
@@ -242,6 +247,7 @@ namespace {
                     for (Apple& apple : appleRow) {
                         if (apple.inDrag) {
                             apple.pop();
+                            gameState.play.score++;
                         }
                     }
                 }

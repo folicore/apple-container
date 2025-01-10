@@ -36,6 +36,7 @@ namespace gamestate {
 
     struct GameState {
         UINT64 previousTimeMs;
+        UINT64 currentTimeMs;
 
         FLOAT graphicalScale;
         FLOAT graphicalOffsetX;
@@ -57,9 +58,10 @@ namespace gamestate {
         FLOAT appleSize;
 
         struct SingletonPlay {
-            UINT64 startTime;
+            INT score;
+            UINT64 startTimeMs;
             std::vector<std::vector<Apple>> apples;
-            bool inDrag = false;
+            bool inDrag;
             float dragStartX;
             float dragStartY;
         };
