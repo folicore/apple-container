@@ -25,6 +25,7 @@ namespace {
     ID2D1RadialGradientBrush* appleGradientBrush = nullptr;
     ID2D1Bitmap* mainMenuBgBitmap = nullptr;
     ID2D1Bitmap* dragBitmap = nullptr;
+    ID2D1Bitmap* tutorialBitmap = nullptr;
 
     // universal arguments to helper functions (no point in typing them for each helper function):
     const MyD2DObjectCollection* p_myd2d;
@@ -116,9 +117,9 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
 
             hCheck(myd2d.d2d_render_target->CreateGradientStopCollection(stopsData, 2, &stops));
 
-            myd2d.d2d_render_target->CreateRadialGradientBrush(
+            hCheck(myd2d.d2d_render_target->CreateRadialGradientBrush(
                 D2D1::RadialGradientBrushProperties(Point2F(180, -70), Point2F(0, 0), 200, 180),
-                stops, &appleGradientBrush);
+                stops, &appleGradientBrush));
 
             help::SafeRelease(stops);
 
@@ -127,6 +128,8 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
         // load images:
         mainMenuBgBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
             L"assets/images/bigTree.png");
+        tutorialBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
+            L"assets/images/tutorial.png");
 
         // create bitmap for dragging over apples:
         {
@@ -163,13 +166,13 @@ void drawLogic::drawFrame(const MyD2DObjectCollection& myd2d, const GameState& g
         D2D1_RECT_F textRect = D2D1::Rect(230.0f, 120.0f, 1920.0f, 1080.0f);
 
         std::wstring text = L"Apple";
-        solidBrush->SetColor(ColorF(ColorF::MediumVioletRed));
+        solidBrush->SetColor(ColorF(ColorF::DarkRed));
         p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
             textFormatComicSans, textRect, solidBrush);
 
         textRect.left = 820.0f;
         text = L"Container";
-        solidBrush->SetColor(ColorF(ColorF::Khaki));
+        solidBrush->SetColor(ColorF(ColorF::LawnGreen));
         p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
             textFormatComicSans, textRect, solidBrush);
     }
@@ -206,7 +209,7 @@ namespace {
 
 
         solidBrush->SetColor(buttonData.hoverOver(p_gameState->logicalMouseX, p_gameState->logicalMouseY) ?
-            ColorF(ColorF::Blue) : ColorF(ColorF::Red));
+            ColorF(0.2f, 0.8f, 0.2f) : ColorF(0.05f, 0.20f, 0.05f));
         p_myd2d->d2d_render_target->FillRoundedRectangle(
             D2D1::RoundedRect(thisRect, 5.0f, 5.0f),
             solidBrush);
@@ -280,6 +283,38 @@ namespace {
 
     void helpMenu() {
         drawButton(gamestate::buttonHelpMenuBack);
+
+        FLOAT imgLeft = 1260.0f;
+        FLOAT imgTop = 270.0f;
+        p_myd2d->d2d_render_target->DrawBitmap(tutorialBitmap,
+            D2D1::Rect(imgLeft, imgTop, imgLeft + 550.0f, imgTop + 475.0f), 1.0f,
+            D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+
+        solidBrush->SetColor(ColorF(ColorF::Black));
+
+        p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(0.7f, 0.7f) *
+            Matrix3x2F::Translation(100.0f, 0.0f) *
+            finalTransform);
+
+        D2D1_RECT_F textRect = D2D1::Rect(130.0f, 70.0f, 19200.0f, 10800.0f);
+        std::wstring text = L"How to play";
+        p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+            textFormatComicSans, textRect, solidBrush);
+
+        p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(0.25f, 0.25f) *
+            Matrix3x2F::Translation(70.0f, 250.0f) *
+            finalTransform);
+
+        text = L"The goal of the game is to clear as many apples\n"
+            L"as possible. Apples can be cleared by dragging\n"
+            L"mouse over them so sum of their values euqals 10.\n"
+            L"You get 1 point for each apple cleared, regardless\n"
+            L"of its value.\n\n"
+            L"Keybinds:\nEsc: previous menu\nR: reset game";
+        p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+            textFormatComicSans, textRect, solidBrush);
+
+        p_myd2d->d2d_render_target->SetTransform(finalTransform);
     }
 
     void playing() {
@@ -336,11 +371,18 @@ namespace {
             D2D1_RECT_F textRect = D2D1::Rect(clockCenter.x - clockRadius, clockCenter.y - clockRadius,
                 clockCenter.x + clockRadius, clockCenter.y + clockRadius);
 
+            // to prevent flashing digit when restting and for number to stop at 0:
+            UINT64 endTime = p_gameState->play.startTimeMs + 1000 * p_gameState->playTime;
+            INT displayedTime = (p_gameState->currentTimeMs < endTime) ? (min(p_gameState->playTime - 1, (endTime - p_gameState->currentTimeMs) / 1000)) : 0;
             solidBrush->SetColor(ColorF(ColorF::White));
-            std::wstring text = std::to_wstring((p_gameState->play.startTimeMs + 1000 * p_gameState->playTime - p_gameState->currentTimeMs) / 1000);
+            std::wstring text = std::to_wstring(displayedTime);
             p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
                 textFormatVCR, textRect, solidBrush);
         }
+
+        // draw buttons:
+        drawButton(gamestate::buttonPlayingMenu);
+        drawButton(gamestate::buttonPlayingReset);
 
         // draw play field:
         solidBrush->SetColor(ColorF(0.75f, 0.6f, 0.3f));
@@ -365,7 +407,7 @@ namespace {
                 D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
 
             solidBrush->SetColor(ColorF(0.5f, 0.375f, 0.0f));
-            p_myd2d->d2d_render_target->DrawRectangle(dragRect, solidBrush, 6.0f);
+            p_myd2d->d2d_render_target->DrawRectangle(dragRect, solidBrush, 4.0f);
         }
     }
 } // namespace

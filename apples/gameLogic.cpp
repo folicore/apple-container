@@ -110,10 +110,10 @@ void gamestate::Apple::animate(UINT64 deltaTimeMs) {
 
 namespace {
     void initPlaying(GameState& gameState, UINT64 timeMs) {
+        gameState.play.timesOver = false;
         gameState.play.startTimeMs = timeMs;
         gameState.play.score = 0;
         gameState.play.inDrag = false;
-
 
         FLOAT playAreaSizeX = gamestate::APPLES_PLAY_AREA.right - gamestate::APPLES_PLAY_AREA.left;
         FLOAT playAreaSizeY = gamestate::APPLES_PLAY_AREA.bottom - gamestate::APPLES_PLAY_AREA.top;
@@ -166,6 +166,7 @@ namespace {
         return false;
     }
 
+
     void mainMenu(GameState& gameState, const Controller& controller, UINT64 timeMs) {
         if (controller.keyJustDown(VK_ESCAPE)) {
             gameState.mode = GameState::Mode::TITLE_MENU;
@@ -187,43 +188,44 @@ namespace {
     }
 
     void helpMenu(GameState& gameState, const Controller& controller) {
-        if (gamestate::buttonHelpMenuBack.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
-            controller.keyJustDown(VK_LBUTTON)) {
+        if (controller.keyJustDown(VK_ESCAPE) ||
+            (gamestate::buttonHelpMenuBack.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
+            controller.keyJustDown(VK_LBUTTON))) {
             gameState.mode = GameState::Mode::MAIN_MENU;
             return;
         }
     }
 
     void playing(GameState& gameState, const Controller& controller, UINT64 timeMs) {
-        if (controller.keyJustDown(VK_ESCAPE)) {
+        if (controller.keyJustDown(VK_ESCAPE) ||
+            (gamestate::buttonPlayingMenu.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
+            controller.keyJustDown(VK_LBUTTON))) {
             gameState.mode = GameState::Mode::MAIN_MENU;
             endPlaying(gameState);
             return;
         }
 
-        if (controller.keyJustDown('R')) {
+        if (controller.keyJustDown('R') ||
+            (gamestate::buttonPlayingReset.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
+            controller.keyJustDown(VK_LBUTTON))) {
             endPlaying(gameState);
             initPlaying(gameState, timeMs);
             return;
         }
 
+        if (gameState.currentTimeMs > gameState.play.startTimeMs + gameState.playTime * 1000) {
+            gameState.play.timesOver = true;
+            gameState.play.inDrag = false;
+            for (std::vector<Apple>& appleRow : gameState.play.apples) {
+                for (Apple& apple : appleRow) {
+                    apple.inDrag = false;
+                }
+            }
+        }
 
         for (std::vector<Apple>& appleRow : gameState.play.apples) {
             for (Apple& apple : appleRow) {
                 apple.animate(timeMs - gameState.previousTimeMs);
-            }
-        }
-
-        INT popCount = 0;
-        if (controller.keyJustDown(VK_SPACE) && popCount < gameState.appleCountX * gameState.appleCountY) {
-            while (true) {
-                if (popCount++ > 10000) { break; }
-                INT x = std::uniform_int_distribution(0, gameState.appleCountX - 1)(rng);
-                INT y = std::uniform_int_distribution(0, gameState.appleCountY - 1)(rng);
-                if (!gameState.play.apples[x][y].popped) {
-                    gameState.play.apples[x][y].pop();
-                    break;
-                }
             }
         }
 

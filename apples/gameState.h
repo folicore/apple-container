@@ -59,6 +59,7 @@ namespace gamestate {
         FLOAT appleSize;
 
         struct SingletonPlay {
+            BOOL timesOver;
             INT score;
             UINT64 startTimeMs;
             std::vector<std::vector<Apple>> apples;
@@ -102,5 +103,21 @@ namespace gamestate {
         .top = buttonMainMenuHelp.top,
         .right = buttonMainMenuHelp.right,
         .bottom = buttonMainMenuHelp.bottom,
+    };
+
+    const Button buttonPlayingMenu = {
+        .text = L"Menu",
+        .left = 120.0f,
+        .top = 860.0f,
+        .right = 360.0f,
+        .bottom = 940.0f,
+    };
+
+    const Button buttonPlayingReset = {
+        .text = L"Reset",
+        .left = 120.0f,
+        .top = 740.0f,
+        .right = 360.0f,
+        .bottom = 820.0f,
     };
 } // namespace gamestate
