@@ -110,7 +110,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		
 
 		controller.pollAllKeys();
-		gameLogic::processFrame(controller, gameState, timeMs);
+		if (gameLogic::processFrame(controller, gameState, timeMs)) {
+			return WindowProc(hwnd, WM_CLOSE, wParam, lParam);
+		};
 
 		myd2d.d2d_render_target->BeginDraw();
 		drawLogic::drawFrame(myd2d, gameState);
@@ -133,10 +135,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	} return 0;
 
 	case WM_CLOSE:
-		switch (MessageBox(nullptr, TEXT("Do you want to close this window?"), TEXT("Confirm closing window"), MB_YESNO | MB_ICONSTOP)) {
-		case IDYES:
-			return WindowProc(hwnd, WM_DESTROY, wParam, lParam);
-		}
+		return WindowProc(hwnd, WM_DESTROY, wParam, lParam);
 	return 0;
 
 	case WM_DESTROY:

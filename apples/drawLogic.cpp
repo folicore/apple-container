@@ -1,6 +1,7 @@
 #include "drawLogic.h"
 
 #include "helper.h"
+#include "bitmapFileLoader.h"
 
 using D2D1::Point2F;
 using D2D1::ColorF;
@@ -21,6 +22,8 @@ namespace {
     ID2D1SolidColorBrush* solidBrush = nullptr;
     ID2D1PathGeometry* appleGeometry = nullptr;
     ID2D1PathGeometry* leafGeometry = nullptr;
+    ID2D1RadialGradientBrush* appleGradientBrush = nullptr;
+    ID2D1Bitmap* mainMenuBgBitmap = nullptr;
 
     // universal arguments to helper functions (no point in typing them for each helper function):
     const MyD2DObjectCollection* p_myd2d;
@@ -102,15 +105,60 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
             sink->EndFigure(D2D1_FIGURE_END_OPEN);
             hCheck(sink->Close());
         }
+
+        // create apple gradient:
+        {
+            ID2D1GradientStopCollection* stops = nullptr;
+            D2D1_GRADIENT_STOP stopsData[2];
+            stopsData[0] = { .position = 0.0f, .color = ColorF(ColorF::IndianRed) };
+            stopsData[1] = { .position = 1.0f, .color = ColorF(ColorF::Red) };
+
+            hCheck(myd2d.d2d_render_target->CreateGradientStopCollection(stopsData, 2, &stops));
+
+            myd2d.d2d_render_target->CreateRadialGradientBrush(
+                D2D1::RadialGradientBrushProperties(Point2F(180, -70), Point2F(0, 0), 200, 180),
+                stops, &appleGradientBrush);
+
+            help::SafeRelease(stops);
+
+        }
+
+        // load images:
+        mainMenuBgBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
+            L"assets/images/bigTree.png");
+
     }
 }
 
 void drawLogic::drawFrame(const MyD2DObjectCollection& myd2d, const GameState& gameState) {
     myd2d.d2d_render_target->Clear(BG_COLOR);
 
+    p_myd2d = &myd2d;
+    p_gameState = &gameState;
     finalTransform = Matrix3x2F::Scale(gameState.graphicalScale, gameState.graphicalScale)
         * Matrix3x2F::Translation(gameState.graphicalOffsetX, gameState.grpahicalOffsetY);
     myd2d.d2d_render_target->SetTransform(finalTransform);
+
+
+    if (gameState.mode == GameState::Mode::TITLE_MENU ||
+        gameState.mode == GameState::Mode::MAIN_MENU) {
+        p_myd2d->d2d_render_target->DrawBitmap(mainMenuBgBitmap,
+            D2D1::Rect(30.0f, 30.0f, 1890.0f, 1050.0f), 1.0f,
+            D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+
+        D2D1_RECT_F textRect = D2D1::Rect(230.0f, 120.0f, 1920.0f, 1080.0f);
+
+        std::wstring text = L"Apple";
+        solidBrush->SetColor(ColorF(ColorF::MediumVioletRed));
+        p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+            textFormatComicSans, textRect, solidBrush);
+
+        textRect.left = 820.0f;
+        text = L"Container";
+        solidBrush->SetColor(ColorF(ColorF::Khaki));
+        p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+            textFormatComicSans, textRect, solidBrush);
+    }
 
     // draw border:
     solidBrush->SetColor(ColorF(ColorF::Green));
@@ -118,15 +166,7 @@ void drawLogic::drawFrame(const MyD2DObjectCollection& myd2d, const GameState& g
         D2D1::RoundedRect(D2D1::Rect(30.0f, 30.0f, 1890.0f, 1050.0f), 30.0f, 30.0f),
         solidBrush, 40.0f);
 
-    // test mouse positon tracking:
-    myd2d.d2d_render_target->FillRectangle(
-        D2D1::Rect(gameState.logicalMouseX - 5.0f, gameState.logicalMouseY - 5.0f,
-            gameState.logicalMouseX + 5.0f, gameState.logicalMouseY + 5.0f),
-        solidBrush
-    );
 
-    p_myd2d = &myd2d;
-    p_gameState = &gameState;
     switch (gameState.mode) {
     case GameState::Mode::MAIN_MENU:
         mainMenu();
@@ -182,7 +222,7 @@ namespace {
         p_myd2d->d2d_render_target->DrawLine(Point2F(0, -95), Point2F(40, -170), solidBrush, 24.0f);
 
         solidBrush->SetColor(ColorF(ColorF::Red));
-        p_myd2d->d2d_render_target->FillGeometry(appleGeometry, solidBrush);
+        p_myd2d->d2d_render_target->FillGeometry(appleGeometry, appleGradientBrush);
 
         solidBrush->SetColor(lineColor);
         p_myd2d->d2d_render_target->DrawGeometry(appleGeometry, solidBrush, 24.0f);
@@ -220,22 +260,6 @@ namespace {
 
 
     void mainMenu() {
-        // draw name of the game:
-        {
-            D2D1_RECT_F textRect = D2D1::Rect(230.0f, 120.0f, 1920.0f, 1080.0f);
-
-            std::wstring text = L"Apple";
-            solidBrush->SetColor(ColorF(ColorF::MediumVioletRed));
-            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
-                textFormatComicSans, textRect, solidBrush);
-
-            textRect.left = 820.0f;
-            text = L"Container";
-            solidBrush->SetColor(ColorF(ColorF::Khaki));
-            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
-                textFormatComicSans, textRect, solidBrush);
-        }
-
         drawButton(gamestate::buttonMainMenuStart);
         drawButton(gamestate::buttonMainMenuHelp);
     }
@@ -340,5 +364,7 @@ void drawLogic::free(rtd rtdv) {
         help::SafeRelease(solidBrush);
         help::SafeRelease(appleGeometry);
         help::SafeRelease(leafGeometry);
+        help::SafeRelease(appleGradientBrush);
+        help::SafeRelease(mainMenuBgBitmap);
     }
 }

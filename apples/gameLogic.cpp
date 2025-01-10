@@ -25,7 +25,7 @@ namespace {
         return randomFloat(0.0f, v_max);
     }
 
-
+    bool titleMenu(GameState& gameState, const Controller& controller);
     void mainMenu(GameState& gameState, const Controller& controller, UINT64 timeMs);
     void helpMenu(GameState& gameState, const Controller& controller);
     void playing(GameState& gameState, const Controller& controller, UINT64 timeMs);
@@ -35,7 +35,7 @@ namespace {
 void gameLogic::init(UINT64 timeMs, GameState& gameState) {
     rng.seed(timeMs);
 
-    gameState.mode = GameState::Mode::MAIN_MENU;
+    gameState.mode = GameState::Mode::TITLE_MENU;
 
     gameState.appleCountX = DEFAULT_APPLES_X;
     gameState.appleCountY = DEFAULT_APPLES_Y;
@@ -44,7 +44,7 @@ void gameLogic::init(UINT64 timeMs, GameState& gameState) {
     gameState.previousTimeMs = timeMs;
 }
 
-void gameLogic::processFrame(const Controller& controller, GameState& gameState, UINT64 timeMs) {
+bool gameLogic::processFrame(const Controller& controller, GameState& gameState, UINT64 timeMs) {
     gameState.currentTimeMs = timeMs;
 
     // assume the game plays in an 1920x1080 window
@@ -61,6 +61,9 @@ void gameLogic::processFrame(const Controller& controller, GameState& gameState,
     gameState.logicalMouseY = (mousePos.y - windowSize.y / 2.0f) / gameState.graphicalScale + gamestate::LOGICAL_WINDOW_SIZE_Y / 2.0f;
     
     switch (gameState.mode) {
+    case GameState::Mode::TITLE_MENU:
+        return titleMenu(gameState, controller);
+
     case GameState::Mode::MAIN_MENU:
         mainMenu(gameState, controller, timeMs);
         break;
@@ -75,6 +78,8 @@ void gameLogic::processFrame(const Controller& controller, GameState& gameState,
     }
 
     gameState.previousTimeMs = timeMs;
+
+    return false;
 }
 
 gamestate::Apple::Apple(INT value, FLOAT posX, FLOAT posY) {
@@ -149,7 +154,24 @@ namespace {
         gameState.play.apples.clear();
     }
 
+    bool titleMenu(GameState& gameState, const Controller& controller) {
+        if (controller.keyJustDown(VK_LBUTTON)) {
+            gameState.mode = GameState::Mode::MAIN_MENU;
+        }
+
+        if (controller.keyJustDown(VK_ESCAPE)) {
+            return true;
+        }
+
+        return false;
+    }
+
     void mainMenu(GameState& gameState, const Controller& controller, UINT64 timeMs) {
+        if (controller.keyJustDown(VK_ESCAPE)) {
+            gameState.mode = GameState::Mode::TITLE_MENU;
+            return;
+        }
+
         if (gamestate::buttonMainMenuStart.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
             controller.keyJustDown(VK_LBUTTON)) {
             gameState.mode = GameState::Mode::PLAYING;

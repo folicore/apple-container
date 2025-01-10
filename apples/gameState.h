@@ -46,6 +46,7 @@ namespace gamestate {
         FLOAT logicalMouseY;
 
         enum class Mode {
+            TITLE_MENU,
             MAIN_MENU,
             HELP_MENU,
             PLAYING
