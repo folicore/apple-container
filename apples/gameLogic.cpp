@@ -7,11 +7,6 @@ using gamestate::GameState;
 using gamestate::Apple;
 
 namespace {
-    const INT DEFAULT_APPLES_X = 17;
-    const INT DEFAULT_APPLES_Y = 10;
-    const INT DEFAULT_PLAY_TIME_SECONDS = 120;
-
-
     // random floats:
     std::mt19937_64 rng;
     FLOAT randomFloat(FLOAT v_min, FLOAT v_max) {
@@ -37,11 +32,13 @@ void gameLogic::init(UINT64 timeMs, GameState& gameState) {
 
     gameState.mode = GameState::Mode::TITLE_MENU;
 
-    gameState.appleCountX = DEFAULT_APPLES_X;
-    gameState.appleCountY = DEFAULT_APPLES_Y;
-    gameState.playTime = DEFAULT_PLAY_TIME_SECONDS;
+    gameState.appleCountX = gamestate::DEFAULT_APPLES_X;
+    gameState.appleCountY = gamestate::DEFAULT_APPLES_Y;
+    gameState.playTime = gamestate::DEFAULT_PLAY_TIME_SECONDS;
 
     gameState.previousTimeMs = timeMs;
+
+    gameState.highScore = 0;
 }
 
 bool gameLogic::processFrame(const Controller& controller, GameState& gameState, UINT64 timeMs) {
@@ -139,7 +136,8 @@ namespace {
         }
 
         // make sum of values divisible by 10 to make board more clearable
-        while (valueSum % 10 != 0) {
+        INT antiLockProtection = 10000; // in very impropable case that only 1s are on the apples
+        while (valueSum % 10 != 0 && antiLockProtection-- > 0) {
             INT x = std::uniform_int_distribution(0, gameState.appleCountX - 1)(rng);
             INT y = std::uniform_int_distribution(0, gameState.appleCountY - 1)(rng);
 
@@ -183,6 +181,46 @@ namespace {
         if (gamestate::buttonMainMenuHelp.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
             controller.keyJustDown(VK_LBUTTON)) {
             gameState.mode = GameState::Mode::HELP_MENU;
+            return;
+        }
+
+        if (gamestate::buttonMainMenuReset.hoverOver(gameState.logicalMouseX, gameState.logicalMouseY) &&
+            controller.keyJustDown(VK_LBUTTON)) {
+            gameState.appleCountX = gamestate::DEFAULT_APPLES_X;
+            gameState.appleCountY = gamestate::DEFAULT_APPLES_Y;
+            gameState.playTime = gamestate::DEFAULT_PLAY_TIME_SECONDS;
+            return;
+        }
+
+        INT settingMenuSelected = -1;
+        for (int i = 0; i < 6; i++) {
+            if (gamestate::mainMenuSettingsButtons[i].hoverOver(gameState.logicalMouseX, gameState.logicalMouseY)) {
+                settingMenuSelected = i;
+                break;
+            }
+        }
+
+        if (settingMenuSelected != -1 && controller.keyJustDown(VK_LBUTTON)) {
+            switch (settingMenuSelected) {
+            case 0:
+                if (gameState.appleCountX < 32) { gameState.appleCountX++; }
+                break;
+            case 3:
+                if (gameState.appleCountX > 4) { gameState.appleCountX--; }
+                break;
+            case 1:
+                if (gameState.appleCountY < 20) { gameState.appleCountY++; }
+                break;
+            case 4:
+                if (gameState.appleCountY > 4) { gameState.appleCountY--; }
+                break;
+            case 2:
+                if (gameState.playTime < 900 ) { gameState.playTime += 5; }
+                break;
+            case 5:
+                if (gameState.playTime > 5) { gameState.playTime -= 5; }
+                break;
+            }
             return;
         }
     }

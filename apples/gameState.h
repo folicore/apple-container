@@ -8,6 +8,10 @@ namespace gamestate {
     const FLOAT LOGICAL_WINDOW_SIZE_X = 1920.0f;
     const FLOAT LOGICAL_WINDOW_SIZE_Y = 1080.0f;
 
+    const INT DEFAULT_APPLES_X = 17;
+    const INT DEFAULT_APPLES_Y = 10;
+    const INT DEFAULT_PLAY_TIME_SECONDS = 120;
+
     const D2D1_RECT_F APPLES_PLAY_AREA = {
         .left = 400.0f,
         .top = 115.0f,
@@ -57,6 +61,8 @@ namespace gamestate {
         INT appleCountY;
         INT playTime;
         FLOAT appleSize;
+
+        INT highScore;
 
         struct SingletonPlay {
             BOOL timesOver;
@@ -119,5 +125,58 @@ namespace gamestate {
         .top = 740.0f,
         .right = 360.0f,
         .bottom = 820.0f,
+    };
+
+    const Button mainMenuSettingsButtons[6] = {
+        {
+            .text = L"+",
+            .left = 1360.0f,
+            .top = 540.0f,
+            .right = 1420.0f,
+            .bottom = 600.0f,
+        },
+        {
+            .text = L"+",
+            .left = 1520.0f,
+            .top = 540.0f,
+            .right = 1580.0f,
+            .bottom = 600.0f,
+        },
+        {
+            .text = L"+",
+            .left = 1680.0f,
+            .top = 540.0f,
+            .right = 1780.0f,
+            .bottom = 600.0f,
+        },
+        {
+            .text = L"-",
+            .left = 1360.0f,
+            .top = 760.0f,
+            .right = 1420.0f,
+            .bottom = 820.0f,
+        },
+        {
+            .text = L"-",
+            .left = 1520.0f,
+            .top = 760.0f,
+            .right = 1580.0f,
+            .bottom = 820.0f,
+        },
+        {
+            .text = L"-",
+            .left = 1680.0f,
+            .top = 760.0f,
+            .right = 1780.0f,
+            .bottom = 820.0f,
+        },
+    };
+
+    const Button buttonMainMenuReset = {
+        .text = L"Reset",
+        .left = 1420.0f,
+        .top = 880.0f,
+        .right = 1720.0f,
+        .bottom = 980.0f,
     };
 } // namespace gamestate

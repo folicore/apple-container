@@ -279,6 +279,69 @@ namespace {
     void mainMenu() {
         drawButton(gamestate::buttonMainMenuStart);
         drawButton(gamestate::buttonMainMenuHelp);
+
+        solidBrush->SetColor(ColorF(ColorF::Black));
+
+        // high score display:
+        {
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(1.0f, 1.0f) *
+                Matrix3x2F::Translation(300.0f, 450.0f) *
+                finalTransform);
+
+            D2D1_RECT_F textRect = D2D1::Rect(-1000.0f, -1000.0f, 1000.0f, 1000.0f);
+            std::wstring text = L"High Score:";
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(2.0f, 2.0f) *
+                Matrix3x2F::Translation(300.0f, 550.0f) *
+                finalTransform);
+
+            text = std::to_wstring(p_gameState->highScore);
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(0.3f, 0.3f) *
+                Matrix3x2F::Translation(300.0f, 490.0f) *
+                finalTransform);
+
+            text = std::wstring(L"(") + std::to_wstring(gamestate::DEFAULT_APPLES_X) +
+                L" x " + std::to_wstring(gamestate::DEFAULT_APPLES_Y) +
+                L" x " + std::to_wstring(gamestate::DEFAULT_PLAY_TIME_SECONDS) + L"s only)";
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, textRect, solidBrush);
+
+            p_myd2d->d2d_render_target->SetTransform(finalTransform);
+        }
+
+        // game settings:
+        {
+            for (INT i = 0; i < 6; i++) {
+                drawButton(gamestate::mainMenuSettingsButtons[i]);
+            }
+            drawButton(gamestate::buttonMainMenuReset);
+
+            for (int i = 0; i < 3; i++) {
+                D2D1_RECT_F rect = D2D1::Rect(
+                    gamestate::mainMenuSettingsButtons[i].left - 40.0f,
+                    gamestate::mainMenuSettingsButtons[i].bottom + 10.0f,
+                    gamestate::mainMenuSettingsButtons[i].right + 40.0f,
+                    gamestate::mainMenuSettingsButtons[i].bottom + 150.0f);
+
+                solidBrush->SetColor(ColorF(ColorF::Wheat));
+                p_myd2d->d2d_render_target->FillRoundedRectangle(
+                    D2D1::RoundedRect(rect, 10.0f, 10.0f), solidBrush);
+
+                solidBrush->SetColor(ColorF(ColorF::Black));
+                std::wstring text;
+                if (i == 0) { text = std::to_wstring(p_gameState->appleCountX); }
+                if (i == 1) { text = std::to_wstring(p_gameState->appleCountY); }
+                if (i == 2) { text = std::to_wstring(p_gameState->playTime) + L"s"; }
+
+                p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                    textFormatVCR, rect, solidBrush);
+            }
+        }
     }
 
     void helpMenu() {
