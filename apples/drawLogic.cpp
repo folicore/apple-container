@@ -26,6 +26,7 @@ namespace {
     ID2D1Bitmap* mainMenuBgBitmap = nullptr;
     ID2D1Bitmap* dragBitmap = nullptr;
     ID2D1Bitmap* tutorialBitmap = nullptr;
+    ID2D1Bitmap* houseBitmap = nullptr;
 
     // universal arguments to helper functions (no point in typing them for each helper function):
     const MyD2DObjectCollection* p_myd2d;
@@ -130,6 +131,8 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
             L"assets/images/bigTree.png");
         tutorialBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
             L"assets/images/tutorial.png");
+        houseBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
+            L"assets/images/house.png");
 
         // create bitmap for dragging over apples:
         {
@@ -472,6 +475,34 @@ namespace {
             solidBrush->SetColor(ColorF(0.5f, 0.375f, 0.0f));
             p_myd2d->d2d_render_target->DrawRectangle(dragRect, solidBrush, 4.0f);
         }
+
+        // draw game over screen:
+        if (p_gameState->play.timesOver) {
+            D2D1_RECT_F rect = D2D1::Rect(-352.0f, -264.0f, 352.0f, 264.0f);
+
+            p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(0.75f, 0.75f) *
+                Matrix3x2F::Translation((gamestate::APPLES_PLAY_AREA.left + gamestate::APPLES_PLAY_AREA.right) / 2.0f,
+                    (gamestate::APPLES_PLAY_AREA.top + gamestate::APPLES_PLAY_AREA.bottom) / 2.0f) *
+                finalTransform);
+
+            p_myd2d->d2d_render_target->DrawBitmap(houseBitmap, rect, 1.0f,
+                D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+
+            solidBrush->SetColor(ColorF(ColorF::White));
+            std::wstring text = L"Game Over";
+            rect.bottom = -150.0f;
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, rect, solidBrush);
+
+            solidBrush->SetColor(ColorF(ColorF::Black));
+            text = std::to_wstring(p_gameState->play.score);
+            rect = D2D1::Rect(-300.0f, -60.0f, 00.0f, 40.0f);
+            p_myd2d->d2d_render_target->DrawTextW(text.data(), text.size(),
+                textFormatVCR, rect, solidBrush);
+
+
+            p_myd2d->d2d_render_target->SetTransform(finalTransform);
+        }
     }
 } // namespace
 
@@ -488,5 +519,7 @@ void drawLogic::free(rtd rtdv) {
         help::SafeRelease(appleGradientBrush);
         help::SafeRelease(mainMenuBgBitmap);
         help::SafeRelease(dragBitmap);
+        help::SafeRelease(tutorialBitmap);
+        help::SafeRelease(houseBitmap);
     }
 }

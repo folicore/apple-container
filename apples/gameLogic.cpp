@@ -259,6 +259,13 @@ namespace {
                     apple.inDrag = false;
                 }
             }
+
+            if (gameState.play.score > gameState.highScore &&
+                gameState.appleCountX == gamestate::DEFAULT_APPLES_X &&
+                gameState.appleCountY == gamestate::DEFAULT_APPLES_Y &&
+                gameState.playTime == gamestate::DEFAULT_PLAY_TIME_SECONDS) {
+                gameState.highScore = gameState.play.score;
+            }
         }
 
         for (std::vector<Apple>& appleRow : gameState.play.apples) {
