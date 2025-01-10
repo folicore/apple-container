@@ -24,6 +24,7 @@ namespace {
     ID2D1PathGeometry* leafGeometry = nullptr;
     ID2D1RadialGradientBrush* appleGradientBrush = nullptr;
     ID2D1Bitmap* mainMenuBgBitmap = nullptr;
+    ID2D1Bitmap* dragBitmap = nullptr;
 
     // universal arguments to helper functions (no point in typing them for each helper function):
     const MyD2DObjectCollection* p_myd2d;
@@ -126,6 +127,19 @@ void drawLogic::init(const MyD2DObjectCollection& myd2d, rtd rtdv) {
         // load images:
         mainMenuBgBitmap = LoadBitmapFromFile(myd2d.d2d_render_target, myd2d.imaging_factory,
             L"assets/images/bigTree.png");
+
+        // create bitmap for dragging over apples:
+        {
+            const BYTE BMP_DATA[4] = {0x00, 0x30, 0x40, 0x40};
+
+            hCheck(myd2d.d2d_render_target->CreateBitmap(
+                D2D1::SizeU(1, 1),
+                BMP_DATA, 1,
+                D2D1::BitmapProperties(D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED)),
+                &dragBitmap));
+        }
 
     }
 }
@@ -299,9 +313,6 @@ namespace {
             p_myd2d->d2d_render_target->SetTransform(finalTransform);
         }
 
-
-
-
         // draw timer: 
         {
             D2D1_POINT_2F clockCenter = Point2F(230.0f, 500.0f);
@@ -345,11 +356,16 @@ namespace {
         }
 
         if (p_gameState->play.inDrag) {
-            solidBrush->SetColor(ColorF(ColorF::Black));
-            p_myd2d->d2d_render_target->DrawRectangle(D2D1::Rect(
+            D2D1_RECT_F dragRect = D2D1::Rect(
                 p_gameState->logicalMouseX, p_gameState->logicalMouseY,
-                p_gameState->play.dragStartX, p_gameState->play.dragStartY),
-                solidBrush, 6.0f);
+                p_gameState->play.dragStartX, p_gameState->play.dragStartY);
+
+            p_myd2d->d2d_render_target->DrawBitmap(dragBitmap,
+                dragRect, 1.0f,
+                D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+
+            solidBrush->SetColor(ColorF(0.5f, 0.375f, 0.0f));
+            p_myd2d->d2d_render_target->DrawRectangle(dragRect, solidBrush, 6.0f);
         }
     }
 } // namespace
@@ -366,5 +382,6 @@ void drawLogic::free(rtd rtdv) {
         help::SafeRelease(leafGeometry);
         help::SafeRelease(appleGradientBrush);
         help::SafeRelease(mainMenuBgBitmap);
+        help::SafeRelease(dragBitmap);
     }
 }
