@@ -89,7 +89,7 @@ gamestate::Apple::Apple(INT value, FLOAT posX, FLOAT posY) {
 
 void gamestate::Apple::animate(UINT64 deltaTimeMs) {
     if (!popped) { return; }
-    if (posY > 1500.0f) { return; }
+    if (posY > 30000.0f) { return; }
 
     FLOAT deltaTimeSec = deltaTimeMs / 1000.0f;
 
@@ -168,6 +168,19 @@ namespace {
     }
 
     void playing(GameState& gameState, const Controller& controller, UINT64 timeMs) {
+        if (controller.keyJustDown(VK_ESCAPE)) {
+            gameState.mode = GameState::Mode::MAIN_MENU;
+            endPlaying(gameState);
+            return;
+        }
+
+        if (controller.keyJustDown('R')) {
+            endPlaying(gameState);
+            initPlaying(gameState, timeMs);
+            return;
+        }
+
+
         for (std::vector<Apple>& appleRow : gameState.play.apples) {
             for (Apple& apple : appleRow) {
                 apple.animate(timeMs - gameState.previousTimeMs);
@@ -183,6 +196,60 @@ namespace {
                 if (!gameState.play.apples[x][y].popped) {
                     gameState.play.apples[x][y].pop();
                     break;
+                }
+            }
+        }
+
+        // start dragging:
+        if (controller.keyJustDown(VK_LBUTTON) &&
+            gameState.logicalMouseX > gamestate::APPLES_PLAY_AREA.left &&
+            gameState.logicalMouseX < gamestate::APPLES_PLAY_AREA.right &&
+            gameState.logicalMouseY > gamestate::APPLES_PLAY_AREA.top &&
+            gameState.logicalMouseY < gamestate::APPLES_PLAY_AREA.bottom) {
+            gameState.play.inDrag = true;
+            gameState.play.dragStartX = gameState.logicalMouseX;
+            gameState.play.dragStartY = gameState.logicalMouseY;
+        }
+
+        INT dragSum = 0;
+        if (gameState.play.inDrag) {
+            FLOAT dragAreaLeft =   min(gameState.logicalMouseX, gameState.play.dragStartX);
+            FLOAT dragAreaRight =  max(gameState.logicalMouseX, gameState.play.dragStartX);
+            FLOAT dragAreaTop =    min(gameState.logicalMouseY, gameState.play.dragStartY);
+            FLOAT dragAreaBottom = max(gameState.logicalMouseY, gameState.play.dragStartY);
+
+            for (std::vector<Apple>& appleRow : gameState.play.apples) {
+                for (Apple& apple : appleRow) {
+                    FLOAT d = 0.05f * gameState.appleSize;
+                    if (!apple.popped &&
+                        apple.posX + d >= dragAreaLeft && apple.posX - d <= dragAreaRight &&
+                        apple.posY + d >= dragAreaTop  && apple.posY - d <= dragAreaBottom) {
+                        apple.inDrag = true;
+                        dragSum += apple.value;
+                    } else {
+                        apple.inDrag = false;
+                    }
+                }
+            }
+        }
+
+        // finish dragging:
+        if (gameState.play.inDrag && controller.keyJustUp(VK_LBUTTON)) {
+            gameState.play.inDrag = false;
+
+            if (dragSum == 10) {
+                for (std::vector<Apple>& appleRow : gameState.play.apples) {
+                    for (Apple& apple : appleRow) {
+                        if (apple.inDrag) {
+                            apple.pop();
+                        }
+                    }
+                }
+            }
+
+            for (std::vector<Apple>& appleRow : gameState.play.apples) {
+                for (Apple& apple : appleRow) {
+                    apple.inDrag = false;
                 }
             }
         }

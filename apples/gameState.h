@@ -59,6 +59,9 @@ namespace gamestate {
         struct SingletonPlay {
             UINT64 startTime;
             std::vector<std::vector<Apple>> apples;
+            bool inDrag = false;
+            float dragStartX;
+            float dragStartY;
         };
         SingletonPlay play;
     };

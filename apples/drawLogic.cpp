@@ -144,6 +144,7 @@ namespace {
 
     void drawApple(const Apple& apple, bool popped) {
         if (apple.popped != popped) { return; }
+        if (apple.posY > 25000.0f) { return; }
 
         D2D1_RECT_F thisRect = D2D1::Rect(-150.0f, -150.0f, 150.0f, 150.0f);
 
@@ -157,7 +158,7 @@ namespace {
         solidBrush->SetColor(ColorF(ColorF::Red));
         p_myd2d->d2d_render_target->FillRectangle(thisRect, solidBrush);
 
-        solidBrush->SetColor(ColorF(ColorF::DarkGoldenrod));
+        solidBrush->SetColor(apple.inDrag ? ColorF(ColorF::Goldenrod) : ColorF(ColorF::SaddleBrown));
         p_myd2d->d2d_render_target->DrawRectangle(thisRect, solidBrush, 40.0f);
 
         p_myd2d->d2d_render_target->SetTransform(Matrix3x2F::Scale(4.0f, 4.0f) * appleTransform);
@@ -209,6 +210,14 @@ namespace {
                     drawApple(apple, popped);
                 }
             }
+        }
+
+        if (p_gameState->play.inDrag) {
+            solidBrush->SetColor(ColorF(ColorF::Black));
+            p_myd2d->d2d_render_target->DrawRectangle(D2D1::Rect(
+                p_gameState->logicalMouseX, p_gameState->logicalMouseY,
+                p_gameState->play.dragStartX, p_gameState->play.dragStartY),
+                solidBrush, 6.0f);
         }
     }
 } // namespace
